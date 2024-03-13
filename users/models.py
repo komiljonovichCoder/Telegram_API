@@ -1,11 +1,12 @@
 from django.db import models
-
-# Create your models here.
 from datetime import datetime, timedelta
 from random import random
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import random
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -61,7 +62,19 @@ class User(BaseModel, AbstractUser):
         self.check_hash_pswd()
 
         super(User, self).save(*args, **kwargs)
+
+    def create_confirmation_code(self, auth_phone_country):
+        code = ''.join([str(random.randint(0,9)) for _ in range(4)])
+        UserCodeVerification.objects.create(
+            code=code,
+            auth_phone_country=auth_phone_country,
+            user_id=self.id
+        )
+        return code
         
+    def token(self):
+        refresh = RefreshToken.for_user(self)
+        return {'refresh': str(refresh), 'access':str(refresh.access_token)}
 
 class UserCodeVerification(BaseModel):
     AUTH_TYPES_CHOICES = ((UZB, UZB), (KAZ, KAZ), (USA, USA), (RUS, RUS), (KOR, KOR))
